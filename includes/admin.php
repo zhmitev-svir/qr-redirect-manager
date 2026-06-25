@@ -359,7 +359,15 @@ function qrm_render_form( $id = 0 ) {
     }
 
     $go_url = $code ? home_url('/go/?code='.$code) : '';
-    $pages  = get_posts(['post_type'=>['page','post'],'numberposts'=>-1,'post_status'=>'publish','orderby'=>'title','order'=>'ASC']);
+    $query = new WP_Query([
+        'post_type'      => ['page', 'post'],
+        'post_status'    => 'publish',
+        'posts_per_page' => -1,
+        'orderby'        => 'title',
+        'order'          => 'ASC',
+        'no_found_rows'  => true,
+    ]);
+    $pages = $query->posts;
 
     qrm_styles();
     ?>
