@@ -154,6 +154,30 @@ Unlimited.
 
 ---
 
+## Improvement Ideas
+
+The following features are planned or worth considering for future versions:
+
+### Auto-update via GitHub Releases
+Currently the plugin must be updated manually by deactivating, deleting, and re-uploading a new zip. A proper update mechanism can be added using the [Plugin Update Checker](https://github.com/YahnisElsts/plugin-update-checker) library or a custom WordPress update hook that points to this GitHub repository. Once implemented, updates would appear directly in **Plugins → Updates** in the WordPress admin dashboard — just like any plugin from the official directory — with no manual file handling required. Data (redirects, scan logs) is never affected by plugin file updates.
+
+### Expiry Dates per Redirect
+Allow each QR code to have an optional expiry date. After that date, the code redirects to the homepage (or a custom expiry URL) instead of the configured destination. Useful for time-limited campaigns.
+
+### Bulk Import via CSV
+Accept a CSV file with columns `code`, `label`, `destination` to create many redirects at once. Useful when working with an external print vendor who supplies a list of codes in advance.
+
+### QR Code Customization
+Allow color, logo/image overlay, and error correction level to be configured per code before downloading the QR image.
+
+### Scan Analytics Dashboard
+A visual chart (bar or line) showing scan volume over time per code, built on the existing scan log data.
+
+### Role-Based Access Control
+Currently only `manage_options` (Administrator) can manage redirects. A setting to allow Editor-level users to update destinations (without being able to create or delete codes) would be useful in delegated workflows.
+
+---
+
 ## Changelog
 
 ### 2.1.0
