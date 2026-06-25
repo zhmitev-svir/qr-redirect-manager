@@ -161,6 +161,58 @@ function qrm_styles() { ?>
 .qrm-pill { display:inline-block; padding:2px 10px; border-radius:20px; font-size:12px; font-weight:700; }
 .qrm-pill-ok  { background:#dcfce7; color:#15803d; }
 .qrm-pill-err { background:#fee2e2; color:#b91c1c; }
+
+/* ── QR Modal ── */
+.qrm-modal-overlay {
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:99999;
+    background:rgba(15,20,40,0.55);
+    backdrop-filter:blur(4px);
+    -webkit-backdrop-filter:blur(4px);
+    align-items:center;
+    justify-content:center;
+}
+.qrm-modal-overlay.is-open { display:flex; }
+.qrm-modal {
+    background:#fff;
+    border-radius:12px;
+    padding:32px 28px 24px;
+    width:320px;
+    max-width:92vw;
+    box-shadow:0 24px 60px rgba(0,0,0,.25);
+    text-align:center;
+    position:relative;
+    animation:qrmModalIn .18s ease;
+}
+@keyframes qrmModalIn {
+    from { transform:scale(.93); opacity:0; }
+    to   { transform:scale(1);   opacity:1; }
+}
+.qrm-modal-close {
+    position:absolute;
+    top:12px; right:14px;
+    background:none; border:none;
+    font-size:20px; line-height:1;
+    color:var(--qrm-muted);
+    cursor:pointer;
+    padding:4px 6px;
+    border-radius:4px;
+    transition:background .12s;
+}
+.qrm-modal-close:hover { background:var(--qrm-light); color:var(--qrm-text); }
+.qrm-modal-title { font-size:15px; font-weight:700; color:var(--qrm-navy); margin:0 0 4px; }
+.qrm-modal-subtitle { font-size:12px; color:var(--qrm-muted); margin:0 0 18px; }
+.qrm-modal-qr { display:flex; justify-content:center; margin-bottom:16px; }
+.qrm-modal-url {
+    font-family:monospace; font-size:11px; word-break:break-all;
+    background:var(--qrm-light); border:1px solid var(--qrm-border);
+    padding:8px 10px; border-radius:5px; color:var(--qrm-navy);
+    margin-bottom:14px;
+}
+.qrm-modal-actions { display:flex; gap:8px; }
+.qrm-modal-actions .qrm-btn { flex:1; justify-content:center; }
 </style>
 <?php }
 
@@ -224,6 +276,12 @@ function qrm_render_list() {
                     <td style="font-weight:700;color:var(--qrm-navy)"><?php echo intval($c->scan_count); ?></td>
                     <td style="color:var(--qrm-muted);font-size:12px;"><?php echo $c->last_scan ? esc_html(date_i18n('M j, Y g:i a',strtotime($c->last_scan))) : '—'; ?></td>
                     <td style="white-space:nowrap;">
+                        <button type="button" class="qrm-btn qrm-btn-gold qrm-btn-sm"
+                            onclick="qrmOpenModal(<?php echo esc_js(json_encode([
+                                'label' => $c->label,
+                                'code'  => $c->code,
+                                'url'   => home_url('/go/?code='.$c->code),
+                            ])); ?>)">QR</button>
                         <a href="<?php echo admin_url('admin.php?page=qrm&qrm_action=edit&qrm_id='.$c->id); ?>" class="qrm-btn qrm-btn-outline qrm-btn-sm">Edit</a>
                         <a href="<?php echo admin_url('admin.php?page=qrm&qrm_action=logs&qrm_id='.$c->id); ?>" class="qrm-btn qrm-btn-outline qrm-btn-sm">Logs</a>
                     </td>
@@ -233,6 +291,78 @@ function qrm_render_list() {
         </table>
         <?php endif; ?>
     </div>
+
+    <!-- QR Modal -->
+    <div class="qrm-modal-overlay" id="qrm-modal" onclick="qrmCloseModal(event)">
+        <div class="qrm-modal" role="dialog" aria-modal="true">
+            <button class="qrm-modal-close" onclick="qrmCloseModalDirect()" aria-label="Close">&times;</button>
+            <p class="qrm-modal-title"    id="qrm-modal-title"></p>
+            <p class="qrm-modal-subtitle" id="qrm-modal-subtitle"></p>
+            <div class="qrm-modal-qr"  id="qrm-modal-qr"></div>
+            <div class="qrm-modal-url" id="qrm-modal-url"></div>
+            <div class="qrm-modal-actions">
+                <button type="button" class="qrm-btn qrm-btn-outline" onclick="qrmModalCopy()">Copy URL</button>
+                <button type="button" class="qrm-btn qrm-btn-gold"    onclick="qrmModalDownload()">Download</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    var qrmModalCurrentUrl  = '';
+    var qrmModalCurrentCode = '';
+
+    function qrmOpenModal(data) {
+        qrmModalCurrentUrl  = data.url;
+        qrmModalCurrentCode = data.code;
+
+        document.getElementById('qrm-modal-title').textContent    = data.label;
+        document.getElementById('qrm-modal-subtitle').textContent = 'code: ' + data.code;
+        document.getElementById('qrm-modal-url').textContent      = data.url;
+
+        var el = document.getElementById('qrm-modal-qr');
+        el.innerHTML = '';
+        new QRCode(el, {
+            text: data.url,
+            width: 200, height: 200,
+            colorDark: '#1a2744', colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+
+        document.getElementById('qrm-modal').classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function qrmCloseModalDirect() {
+        document.getElementById('qrm-modal').classList.remove('is-open');
+        document.body.style.overflow = '';
+    }
+
+    function qrmCloseModal(e) {
+        // Only close when clicking the backdrop, not the modal card itself
+        if (e.target === document.getElementById('qrm-modal')) qrmCloseModalDirect();
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') qrmCloseModalDirect();
+    });
+
+    function qrmModalCopy() {
+        navigator.clipboard.writeText(qrmModalCurrentUrl).then(function() {
+            var btn = event.target;
+            btn.textContent = '✓ Copied!';
+            setTimeout(function(){ btn.textContent = 'Copy URL'; }, 1500);
+        });
+    }
+
+    function qrmModalDownload() {
+        var canvas = document.querySelector('#qrm-modal-qr canvas');
+        if (!canvas) return;
+        var a = document.createElement('a');
+        a.download = 'qr-' + qrmModalCurrentCode + '.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+    }
+    </script>
     <?php
 }
 
