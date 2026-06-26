@@ -61,7 +61,12 @@ function qrm_handle_save() {
         exit;
     }
 
-    wp_redirect( admin_url( 'admin.php?page=qrm&qrm_action=edit&qrm_id=' . $saved_id . '&saved=1' ) );
+    // "Save & Close" → go back to list; "Save" → stay on edit page
+    if ( ! empty( $_POST['qrm_close'] ) && $_POST['qrm_close'] === '1' ) {
+        wp_redirect( admin_url( 'admin.php?page=qrm&saved=1' ) );
+    } else {
+        wp_redirect( admin_url( 'admin.php?page=qrm&qrm_action=edit&qrm_id=' . $saved_id . '&saved=1' ) );
+    }
     exit;
 }
 
@@ -559,8 +564,10 @@ function qrm_render_form( $id = 0 ) {
 
                     <div class="qrm-form-actions">
                         <button type="submit" class="qrm-btn qrm-btn-primary">Save Redirect</button>
+                        <button type="submit" class="qrm-btn qrm-btn-outline" onclick="document.getElementById('qrm-close-flag').value='1'">Save &amp; Close</button>
                         <a href="<?php echo admin_url('admin.php?page=qrm'); ?>" style="color:var(--qrm-muted);font-size:13px;">Cancel</a>
                     </div>
+                    <input type="hidden" id="qrm-close-flag" name="qrm_close" value="0">
                 </form>
 
                 <?php if ($is_edit): ?>
